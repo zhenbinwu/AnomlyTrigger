@@ -71,7 +71,6 @@ if __name__ == "__main__":
                 val_out = model(_bg_img)
                 val_loss = criterion(val_out, _bg_img)
             # ===================log========================
-            break
         print('epoch [{}/{}], loss:{:.4f}, val loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data, val_loss.data))
         scheduler.step(loss)
 
