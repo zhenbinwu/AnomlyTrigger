@@ -64,8 +64,8 @@ sampleMap   = {
     },
 }
 
-batch_size = 5000 #144
-num_epochs = 1
+batch_size = 2000 #144
+num_epochs = 200
 learning_rate = 1e-3
 trainingfrac = 0.8
 
@@ -127,13 +127,11 @@ def EvalLoss(samplefile, PhysicsObt, model, criterion):
         else:
             vbg_loss = np.append([vbg_loss],[_vbg_loss])
             vbg_out = np.concatenate((vbg_out,_vbg_out))
-    print(vbg_loss)
     return vbg_loss
 
 def DrawLoss(modelname, lossMap, features):
     plt.figure(figsize=(14,6))
     for k, v in lossMap.items():
-        print(v)
         reshape_vbg_loss = np.reshape(v, (-1,features))
         vloss = np.sum(reshape_vbg_loss, axis=1).flatten()
         plt.hist(v,bins=100,label=sampleMap[k]['label'],  

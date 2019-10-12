@@ -72,9 +72,7 @@ if __name__ == "__main__":
                 val_loss = criterion(val_out, _bg_img)
             # ===================log========================
             break
-        print(loss.data)
-        print('epoch [{}/{}], loss:{:.4f}, val loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data, 0))
-        # print('epoch [{}/{}], loss:{:.4f}, val loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data, val_loss.data))
+        print('epoch [{}/{}], loss:{:.4f}, val loss:{:.4f}'.format(epoch + 1, num_epochs, loss.data, val_loss.data))
         scheduler.step(loss)
 
     torch.save(model.state_dict(), './%s.pth' % modelname)
