@@ -9,10 +9,19 @@ PhysicsObt = OrderedDict(
         "puppiJetEta" : [5, 5],
         "puppiJetPhi" : [5, 5],
         "puppiMETPhi" : [1, 5],
+        "EGEt" : [5, 20],
+        "EGEta" : [5, 5],
+        "EGPhi" : [5, 5],
+        "pfMuonPt" : [2, 20],
+        "pfMuonEta" : [2, 5],
+        "pfMuonPhi" : [2, 5],
+        "pfTauEt" : [5, 20],
+        "pfTauEta" : [5, 5],
+        "pfTauPhi" : [5, 5],
     }
 )
 
-modelname = "PuppiJetMETHTv2"
+modelname = "PuppiLep"
 
 class autoencoder(nn.Module):
     def __init__(self,features):

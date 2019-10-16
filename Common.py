@@ -17,6 +17,7 @@ from torchvision import transforms
 from torchvision.datasets import MNIST
 from torchvision.utils import save_image
 import matplotlib.pyplot as plt
+from sklearn.metrics import roc_curve, auc
 import pickle
 
 from torch.utils.data import Dataset, DataLoader
@@ -65,7 +66,7 @@ sampleMap   = {
 }
 
 batch_size = 2000 #144
-num_epochs = 200
+num_epochs = 100
 learning_rate = 1e-3
 trainingfrac = 0.8
 
@@ -134,7 +135,7 @@ def DrawLoss(modelname, lossMap, features):
     for k, v in lossMap.items():
         reshape_vbg_loss = np.reshape(v, (-1,features))
         vloss = np.sum(reshape_vbg_loss, axis=1).flatten()
-        plt.hist(v,bins=100,label=sampleMap[k]['label'],  
+        plt.hist(vloss,bins=100,label=sampleMap[k]['label'],  
                  histtype=sampleMap[k]['histtype'],  
                  color=sampleMap[k]['color'],  normed=True)
     plt.legend(loc='best',fontsize=16)
@@ -143,3 +144,27 @@ def DrawLoss(modelname, lossMap, features):
     plt.savefig("%s_Loss.png" % modelname)
 
 
+def DrawROC(modelname, lossMap, features):
+    plt.figure(figsize=(14,6))
+    reshape_bg_loss = np.reshape(lossMap["BG"], (-1,features))
+    bloss = np.sum(reshape_bg_loss, axis=1).flatten()
+    for k, v in lossMap.items():
+        if k == "BG":
+            continue
+        reshape_vbg_loss = np.reshape(v, (-1,features))
+        vloss = np.sum(reshape_vbg_loss, axis=1).flatten()
+        Tr = np.concatenate(( np.zeros_like(bloss), np.ones_like(vloss)), axis=0)
+        Loss = np.concatenate((bloss, vloss), axis=0)
+        print(Tr, Loss)
+        fpr, tpr, thresholds = roc_curve(Tr, Loss)
+        roc_auc = auc(fpr, tpr)
+        rate = fpr * 40*1000
+        plt.plot(rate, tpr, color=sampleMap[k]['color'],
+                 lw=2, label='%s (AUC = %0.2f)' % (sampleMap[k]['label'], roc_auc))
+    plt.legend(loc='best',fontsize=16)
+    plt.xlabel('Rate (kHz)', fontsize=16)
+    plt.ylabel('Signal Efficiency', fontsize=16)
+    plt.savefig("%s_ROC.png" % modelname)
+    plt.xlim(0,300)
+    plt.ylim(0,0.6)
+    plt.savefig("%s_ROCZoom.png" % modelname)
