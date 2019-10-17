@@ -69,15 +69,13 @@ batch_size = 2000 #144
 num_epochs = 200
 learning_rate = 1e-3
 trainingfrac = 0.8
-## A global cutstring in case selected training
-## For example : globalcutstring = '(t["jetEt"] > 100).sum()>2'
-globalcutstring = None
+globalcutfunc = None
 
 class P2L1NTP(Dataset):
     def __init__(self, dir_name, features = None,
                  tree_name="l1PhaseIITree/L1PhaseIITree",
                  sequence_length=50, verbose=False,
-                 cutstring =None):
+                 cutfunc =None):
         self.tree_name = tree_name
         self.features = features
         self.sequence_length = sequence_length
@@ -86,13 +84,12 @@ class P2L1NTP(Dataset):
         ## Having issue and reported in https://github.com/scikit-hep/uproot/issues/296
         self.cache = uproot.cache.ArrayCache(1024**3)
         self.upTree = uproot.lazyarrays(self.file_names, self.tree_name, self.features.keys(), cache=self.cache)
-        self.cutstring = cutstring
-        if self.cutstring is not None:
-            t = self.upTree
-            exec( "self.upTree = t [%s]" % self.cutstring)
+        self.cutfunc = cutfunc
+        if self.cutfunc is not None:
+            self.upTree = self.upTree[self.cutfunc(self.upTree)]
 
     def __len__(self):
-        if self.cutstring is None:
+        if self.cutfunc is None:
             return uproot.numentries(self.file_names, self.tree_name, total=True)
         else:
             return len(self.upTree)
@@ -120,8 +117,16 @@ class P2L1NTP(Dataset):
         org = np.concatenate(reflatnp, axis=0)
         return org
 
+    def GetCutArray(self, cutfunc):
+        select = cutfunc(self.upTree)
+        sel = np.array(select)[np.newaxis]
+        nfeatures = sum([v[0] for b, v in self.features.items()])
+        ones = np.ones((self.__len__(), nfeatures))
+        out = np.multiply(ones, sel.T)
+        return out
+
 def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None):
-    sample = P2L1NTP(samplefile, PhysicsObt, cutstring=cut)
+    sample = P2L1NTP(samplefile, PhysicsObt)
     dataloader = DataLoader(sample, batch_size=batch_size, pin_memory=True, shuffle=False)
     for batch_idx, vbg_data in enumerate(dataloader):
         _vbg_img = Variable(vbg_data.type(torch.FloatTensor))
@@ -138,6 +143,12 @@ def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None):
         else:
             vbg_loss = np.append([vbg_loss],[_vbg_loss])
             vbg_out = np.concatenate((vbg_out,_vbg_out))
+
+    if cut is not None:
+        cutmask = sample.GetCutArray(cut)
+        vbg_loss = np.multiply(vbg_loss, cutmask.flatten())
+        vbg_out = np.multiply(vbg_out, cutmask)
+
     return vbg_loss
 
 def DrawLoss(modelname, lossMap, features):
@@ -165,7 +176,6 @@ def DrawROC(modelname, lossMap, features):
         vloss = np.sum(reshape_vbg_loss, axis=1).flatten()
         Tr = np.concatenate(( np.zeros_like(bloss), np.ones_like(vloss)), axis=0)
         Loss = np.concatenate((bloss, vloss), axis=0)
-        print(Tr, Loss)
         fpr, tpr, thresholds = roc_curve(Tr, Loss)
         roc_auc = auc(fpr, tpr)
         rate = fpr * 40*1000
