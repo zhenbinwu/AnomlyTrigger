@@ -8,6 +8,8 @@ PhysicsObt = OrderedDict(
         "jetPhi" : [12, 5],
     }
 )
+
+# globalcutstring = '(t["jetEt"] > 100).sum()>2'
 modelname = "PFJet5"
 
 

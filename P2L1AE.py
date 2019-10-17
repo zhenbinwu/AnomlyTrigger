@@ -17,7 +17,6 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from torch.utils.data import Dataset, DataLoader
 
 from Common import *
-# from PuppiJetModel import *
 import time
 import imp
 
@@ -34,7 +33,7 @@ if __name__ == "__main__":
     start = time.time()
     features = sum([v[0] for b, v in PhysicsObt.items()])
 
-    bg = P2L1NTP(bg_files, PhysicsObt)
+    bg = P2L1NTP(bg_files, PhysicsObt,  cutstring=globalcutstring)
     dataloader = DataLoader(bg, batch_size=batch_size, pin_memory=True, num_workers=2, shuffle=False)
 
     model = autoencoder(features)
@@ -81,9 +80,9 @@ if __name__ == "__main__":
     criterion = torch.nn.L1Loss(reduction='none')
     lossMap = {}
     for k, v in sampleMap.items():
-        lossMap[k] = EvalLoss(v["file"], PhysicsObt, model, criterion)
+        lossMap[k] = EvalLoss(v["file"], PhysicsObt, model, criterion, cut=globalcutstring)
     DrawLoss(modelname, lossMap, features)
+    DrawROC(modelname, lossMap, features)
     pickle.dump(lossMap, open("%s.p" % modelname, "wb"))
-
 
 

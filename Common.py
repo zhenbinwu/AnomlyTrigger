@@ -66,14 +66,18 @@ sampleMap   = {
 }
 
 batch_size = 2000 #144
-num_epochs = 100
+num_epochs = 200
 learning_rate = 1e-3
 trainingfrac = 0.8
+## A global cutstring in case selected training
+## For example : globalcutstring = '(t["jetEt"] > 100).sum()>2'
+globalcutstring = None
 
 class P2L1NTP(Dataset):
     def __init__(self, dir_name, features = None,
                  tree_name="l1PhaseIITree/L1PhaseIITree",
-                 sequence_length=50, verbose=False):
+                 sequence_length=50, verbose=False,
+                 cutstring =None):
         self.tree_name = tree_name
         self.features = features
         self.sequence_length = sequence_length
@@ -82,10 +86,16 @@ class P2L1NTP(Dataset):
         ## Having issue and reported in https://github.com/scikit-hep/uproot/issues/296
         self.cache = uproot.cache.ArrayCache(1024**3)
         self.upTree = uproot.lazyarrays(self.file_names, self.tree_name, self.features.keys(), cache=self.cache)
-        #self.upTree = uproot.lazyarrays(self.file_names, self.tree_name, self.features.keys())
+        self.cutstring = cutstring
+        if self.cutstring is not None:
+            t = self.upTree
+            exec( "self.upTree = t [%s]" % self.cutstring)
 
     def __len__(self):
-        return uproot.numentries(self.file_names, self.tree_name, total=True)
+        if self.cutstring is None:
+            return uproot.numentries(self.file_names, self.tree_name, total=True)
+        else:
+            return len(self.upTree)
 
     def __getitem__(self, idx):
         reflatnp = []
@@ -110,8 +120,8 @@ class P2L1NTP(Dataset):
         org = np.concatenate(reflatnp, axis=0)
         return org
 
-def EvalLoss(samplefile, PhysicsObt, model, criterion):
-    sample = P2L1NTP(samplefile, PhysicsObt)
+def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None):
+    sample = P2L1NTP(samplefile, PhysicsObt, cutstring=cut)
     dataloader = DataLoader(sample, batch_size=batch_size, pin_memory=True, shuffle=False)
     for batch_idx, vbg_data in enumerate(dataloader):
         _vbg_img = Variable(vbg_data.type(torch.FloatTensor))
