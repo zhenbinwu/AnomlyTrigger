@@ -11,6 +11,8 @@ PhysicsObt = OrderedDict(
     }
 )
 
+globalcutfunc = lambda t : (t["puppiJetEt"] > 10).sum()>2
+
 modelname = "PuppiJetMET"
 
 class autoencoder(nn.Module):

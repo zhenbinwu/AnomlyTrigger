@@ -9,7 +9,7 @@ PhysicsObt = OrderedDict(
     }
 )
 
-modelname = "PFJet5"
+modelname = "PFJet12"
 
 
 class autoencoder(nn.Module):

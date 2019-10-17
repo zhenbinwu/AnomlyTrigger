@@ -12,7 +12,7 @@ PhysicsObt = OrderedDict(
     }
 )
 
-globalcutfunc = lambda t : (t["puppiJetEt"] > 20).sum()>2
+globalcutfunc = lambda t : (t["puppiJetEt"] > 10).sum()>2
 
 modelname = "PuppiJetMETHT_cut"
 
