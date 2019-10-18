@@ -26,15 +26,16 @@ class autoencoder(nn.Module):
             nn.ReLU(True),
             nn.Linear(int(features/3), int(features/3)), # 1280,64
             nn.ReLU(True),
-            nn.Linear(int(features/3), int(features/3)), # 1280,64
-            nn.ReLU(True),
-            nn.Linear(int(features/3), int(features/3)), # 1280,64
-            nn.ReLU(True))
+            # nn.Linear(int(features/3), int(features/3)), # 1280,64
+            # nn.ReLU(True),
+            # nn.Linear(int(features/3), int(features/3)), # 1280,64
+            # nn.ReLU(True))
+        )
         self.decoder = nn.Sequential(
-            nn.Linear(int(features/3), int(features/3)), # 1280,64
-            nn.ReLU(True),
-            nn.Linear(int(features/3), int(features/3)), # 1280,64
-            nn.ReLU(True),
+            # nn.Linear(int(features/3), int(features/3)), # 1280,64
+            # nn.ReLU(True),
+            # nn.Linear(int(features/3), int(features/3)), # 1280,64
+            # nn.ReLU(True),
             nn.Linear(int(features/3), int(features/3)),
             nn.ReLU(True),
             nn.Linear(int(features/3), int(features*2/3)),

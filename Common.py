@@ -29,10 +29,11 @@ print(uproot.__version__) # Need latest uproot v3.7.1 for LazzyArrays
 # It should be generic for all kind of flattree
 # LazzyArrays is very new for uproot. Need more testing for performances
 
-bg_files = "/uscms_data/d2/lpctrig/benwu/AutoEncoderSample/Phaes2L1Ntuple/NeutrinoGun_E_10GeV_V7_5_2_MERGED.root"
-sg_files = "/uscms_data/d2/lpctrig/benwu/AutoEncoderSample/Phaes2L1Ntuple/VBF_HToInvisible_M125_14TeV_pythia8_PU200_V7_4_2.root"
-sg_files2 =  "/uscms_data/d2/lpctrig/benwu/AutoEncoderSample/Phaes2L1Ntuple/VBFHToBB_M-125_14TeV_powheg_pythia8_weightfix_V_7_5_2.root"
-sg_files3 = "/uscms_data/d2/lpctrig/benwu/AutoEncoderSample/Phaes2L1Ntuple/GluGluToHHTo4B_node_SM_14TeV-madgraph_V7_5_2.root"
+folder = "~/Data/Phaes2L1Ntuple/"
+bg_files  = "%s/NeutrinoGun_E_10GeV_V7_5_2_MERGED.root" % folder
+sg_files  = "%s/VBF_HToInvisible_M125_14TeV_pythia8_PU200_V7_4_2.root" % folder
+sg_files2 = "%s/VBFHToBB_M-125_14TeV_powheg_pythia8_weightfix_V_7_5_2.root" % folder
+sg_files3 = "%s/GluGluToHHTo4B_node_SM_14TeV-madgraph_V7_5_2.root" % folder
 
 sampleMap   = {
     "BG"   :  
@@ -40,7 +41,7 @@ sampleMap   = {
         "file" : bg_files,
         "histtype" : 'bar', 
         "label" : 'BG', 
-        "color" : 'y', 
+        "color" : 'yellow', 
     },
     'HtoInvisible' :
     {
@@ -153,16 +154,19 @@ def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None):
 
 def DrawLoss(modelname, lossMap, features):
     plt.figure(figsize=(14,6))
+    bins = np.linspace(0, 30, 60)
     for k, v in lossMap.items():
         reshape_vbg_loss = np.reshape(v, (-1,features))
         vloss = np.sum(reshape_vbg_loss, axis=1).flatten()
-        plt.hist(vloss,bins=100,label=sampleMap[k]['label'],  
+        plt.hist(vloss,bins,label=sampleMap[k]['label'],  
                  histtype=sampleMap[k]['histtype'],  
                  color=sampleMap[k]['color'],  normed=True)
     plt.legend(loc='best',fontsize=16)
     plt.xlim(-1,30)
     plt.xlabel('Reconstruction Loss', fontsize=16)
     plt.savefig("%s_Loss.png" % modelname)
+    plt.yscale("log")
+    plt.savefig("%s_LogLoss.png" % modelname)
 
 
 def DrawROC(modelname, lossMap, features):
@@ -187,4 +191,5 @@ def DrawROC(modelname, lossMap, features):
     plt.savefig("%s_ROC.png" % modelname)
     plt.xlim(0,300)
     plt.ylim(0,0.6)
+    plt.grid(True)
     plt.savefig("%s_ROCZoom.png" % modelname)
