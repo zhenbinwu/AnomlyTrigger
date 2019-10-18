@@ -67,7 +67,7 @@ sampleMap   = {
 }
 
 batch_size = 2000 #144
-num_epochs = 200
+num_epochs = 100
 learning_rate = 1e-3
 trainingfrac = 0.8
 globalcutfunc = None
