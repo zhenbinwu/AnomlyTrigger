@@ -153,7 +153,7 @@ def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None):
     return vbg_loss
 
 def DrawLoss(modelname, lossMap, features):
-    plt.figure(figsize=(14,6))
+    plt.figure(figsize=(8,6))
     bins = np.linspace(0, 30, 60)
     for k, v in lossMap.items():
         reshape_vbg_loss = np.reshape(v, (-1,features))
@@ -170,7 +170,7 @@ def DrawLoss(modelname, lossMap, features):
 
 
 def DrawROC(modelname, lossMap, features):
-    plt.figure(figsize=(14,6))
+    plt.figure(figsize=(8,6))
     reshape_bg_loss = np.reshape(lossMap["BG"], (-1,features))
     bloss = np.sum(reshape_bg_loss, axis=1).flatten()
     for k, v in lossMap.items():
