@@ -29,19 +29,27 @@ print(uproot.__version__) # Need latest uproot v3.7.1 for LazzyArrays
 # It should be generic for all kind of flattree
 # LazzyArrays is very new for uproot. Need more testing for performances
 
-folder = "~/Data/Phaes2L1Ntuple/"
+folder = "/Users/benwu/Data/Phaes2L1Ntuple/"
 bg_files  = "%s/NeutrinoGun_E_10GeV_V7_5_2_MERGED.root" % folder
 sg_files  = "%s/VBF_HToInvisible_M125_14TeV_pythia8_PU200_V7_4_2.root" % folder
 sg_files2 = "%s/VBFHToBB_M-125_14TeV_powheg_pythia8_weightfix_V_7_5_2.root" % folder
 sg_files3 = "%s/GluGluToHHTo4B_node_SM_14TeV-madgraph_V7_5_2.root" % folder
 
 sampleMap   = {
-    "BG"   :  
+    "BG"   :
     {
         "file" : bg_files,
-        "histtype" : 'bar', 
+        "histtype" : 'bar',
         "label" : 'BG', 
-        "color" : 'yellow', 
+        "color" : 'yellow',
+    },
+    "BG_JetGau1"   :  
+    {
+        "file" : bg_files,
+        "histtype" : 'step', 
+        "label" : 'Smeared Jet Et 1sigma', 
+        "color" : 'b', 
+        "noisetype" : "PuppiJetEtGau1"
     },
     'HtoInvisible' :
     {
@@ -76,7 +84,7 @@ class P2L1NTP(Dataset):
     def __init__(self, dir_name, features = None,
                  tree_name="l1PhaseIITree/L1PhaseIITree",
                  sequence_length=50, verbose=False,
-                 cutfunc =None):
+                 cutfunc =None, noisetype=None):
         self.tree_name = tree_name
         self.features = features
         self.sequence_length = sequence_length
@@ -85,6 +93,7 @@ class P2L1NTP(Dataset):
         ## Having issue and reported in https://github.com/scikit-hep/uproot/issues/296
         self.cache = uproot.cache.ArrayCache(1024**3)
         self.upTree = uproot.lazyarrays(self.file_names, self.tree_name, self.features.keys(), cache=self.cache)
+        self.noisetype = noisetype
         self.cutfunc = cutfunc
         if self.cutfunc is not None:
             self.upTree = self.upTree[self.cutfunc(self.upTree)]
@@ -109,6 +118,7 @@ class P2L1NTP(Dataset):
                     tg = g[:ln]
                 else:
                     tg = np.pad(g, (0, ln-len(g)), 'constant', constant_values=0)
+            self.MakingNoise(b, tg)
 
             if scale > 10 :
                 tg = tg / scale
@@ -118,6 +128,22 @@ class P2L1NTP(Dataset):
         org = np.concatenate(reflatnp, axis=0)
         return org
 
+    def MakingNoise(self, varname, var):
+        if self.noisetype is None:
+            return True
+
+        if self.noisetype == "MET10":
+            if varname == "puppiMETEt":
+                var = var * 1.1
+        if self.noisetype == "MET20":
+            if varname == "puppiMETEt":
+                var = var * 1.2
+        if self.noisetype == "PuppiJetEtGau1":
+            if varname == "puppiJetEt":
+                with np.nditer(var, op_flags=['readwrite']) as it:
+                    for x in it:
+                        x[...] = abs(np.random.normal(x, 1))
+
     def GetCutArray(self, cutfunc):
         select = cutfunc(self.upTree)
         sel = np.array(select)[np.newaxis]
@@ -126,8 +152,8 @@ class P2L1NTP(Dataset):
         out = np.multiply(ones, sel.T)
         return out
 
-def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None):
-    sample = P2L1NTP(samplefile, PhysicsObt)
+def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None, noisemaker=None):
+    sample = P2L1NTP(samplefile, PhysicsObt, noisetype=noisemaker)
     dataloader = DataLoader(sample, batch_size=batch_size, pin_memory=True, shuffle=False)
     for batch_idx, vbg_data in enumerate(dataloader):
         _vbg_img = Variable(vbg_data.type(torch.FloatTensor))
