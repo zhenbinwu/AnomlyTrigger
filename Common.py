@@ -29,7 +29,8 @@ print(uproot.__version__) # Need latest uproot v3.7.1 for LazzyArrays
 # It should be generic for all kind of flattree
 # LazzyArrays is very new for uproot. Need more testing for performances
 
-folder = "/Users/benwu/Data/Phaes2L1Ntuple/"
+# folder = "/Users/benwu/Data/Phaes2L1Ntuple/"
+folder = "/uscms_data/d2/lpctrig/benwu/AutoEncoderSample/Phaes2L1Ntuple/"
 bg_files  = "%s/NeutrinoGun_E_10GeV_V7_5_2_MERGED.root" % folder
 sg_files  = "%s/VBF_HToInvisible_M125_14TeV_pythia8_PU200_V7_4_2.root" % folder
 sg_files2 = "%s/VBFHToBB_M-125_14TeV_powheg_pythia8_weightfix_V_7_5_2.root" % folder
@@ -43,14 +44,46 @@ sampleMap   = {
         "label" : 'BG', 
         "color" : 'yellow',
     },
-    "BG_JetGau1"   :  
-    {
-        "file" : bg_files,
-        "histtype" : 'step', 
-        "label" : 'Smeared Jet Et 1sigma', 
-        "color" : 'b', 
-        "noisetype" : "PuppiJetEtGau1"
-    },
+    # "BG_JetMET"   :  
+    # {
+        # "file" : bg_files,
+        # "histtype" : 'step', 
+        # "label" : 'Smeared Jet/MET 1$\sigma$', 
+        # "color" : 'b', 
+        # "noisetype" : "JetMET50"
+    # },
+    # "BG_JetEt"   :  
+    # {
+        # "file" : bg_files,
+        # "histtype" : 'step', 
+        # "label" : r'Smeared Jet Et 1$\sigma$', 
+        # "color" : 'm', 
+        # "noisetype" : "PuppiJetEtGau1"
+    # },
+    # "BG_MET10"   :  
+    # {
+        # "file" : bg_files,
+        # "histtype" : 'step', 
+        # "label" : 'MET * 1.1', 
+        # "color" : 'r', 
+        # "noisetype" : "MET10"
+    # },
+    # "BG_MET20"   :  
+    # {
+        # "file" : bg_files,
+        # "histtype" : 'step', 
+        # "label" : 'MET * 1.2',
+        # "color" : 'g', 
+        # "noisetype" : "MET20"
+    # },
+    # "BG_MET50"   :  
+    # {
+        # "file" : bg_files,
+        # "histtype" : 'step', 
+        # "label" : 'MET * 1.5',
+        # "color" : 'c', 
+        # "noisetype" : "MET50"
+    # },
     'HtoInvisible' :
     {
         "file" :  sg_files,
@@ -138,11 +171,21 @@ class P2L1NTP(Dataset):
         if self.noisetype == "MET20":
             if varname == "puppiMETEt":
                 var = var * 1.2
+        if self.noisetype == "MET50":
+            if varname == "puppiMETEt":
+                var = var * 1.5
         if self.noisetype == "PuppiJetEtGau1":
             if varname == "puppiJetEt":
                 with np.nditer(var, op_flags=['readwrite']) as it:
                     for x in it:
                         x[...] = abs(np.random.normal(x, 1))
+        if self.noisetype == "JetMET50":
+            if any([varname == x for x in ["puppiJetEt", "puppiJetEta", "puppiJetPhi", "puppiMETPhi"]]):
+                with np.nditer(var, op_flags=['readwrite']) as it:
+                    for x in it:
+                        x[...] = abs(np.random.normal(x, 1))
+            if varname == "puppiMETEt":
+                var = var * 1.5
 
     def GetCutArray(self, cutfunc):
         select = cutfunc(self.upTree)
@@ -165,18 +208,20 @@ def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None, noisemaker=None
         _vbg_out = vout.cpu().detach().numpy()
         _vbg_loss = vloss.cpu().detach().numpy()
         if batch_idx == 0:
+            vbg_in = vbg_data
             vbg_out = _vbg_out
             vbg_loss = _vbg_loss
         else:
             vbg_loss = np.append([vbg_loss],[_vbg_loss])
             vbg_out = np.concatenate((vbg_out,_vbg_out))
+            vbg_in = np.concatenate((vbg_in, vbg_data))
 
     if cut is not None:
         cutmask = sample.GetCutArray(cut)
         vbg_loss = np.multiply(vbg_loss, cutmask.flatten())
         vbg_out = np.multiply(vbg_out, cutmask)
 
-    return vbg_loss
+    return vbg_loss, vbg_in, vbg_out
 
 def DrawLoss(modelname, lossMap, features):
     plt.figure(figsize=(8,6))
@@ -219,3 +264,21 @@ def DrawROC(modelname, lossMap, features):
     plt.ylim(0,0.6)
     plt.grid(True)
     plt.savefig("%s_ROCZoom.png" % modelname)
+
+
+def DrawInOut(modelname, PhysicsObt, inputMap, outputMap):
+    for k in inputMap.keys():
+        inputData = inputMap[k]
+        outputData = outputData[k]
+        for i in range(outputData.shape[1]):
+            plt.figure(figsize=(10,4))
+            plt.subplot(1,2,1)
+            plt.hist([inputData[:,i].flatten(), outputData[:,i].flatten()],bins=40, label=['Input', 'Output'])
+            plt.yscale('log')
+            plt.legend(loc='best')
+            plt.subplot(1,2,2)
+            plt.hist2d(inputData[:,i].flatten(),outputData[:,i].flatten(),bins=40)
+            plt.xlabel('Input')
+            plt.ylabel('Output')
+            plt.savefig( "%s_%s_%d.png" % (modelname, k, i) )
+

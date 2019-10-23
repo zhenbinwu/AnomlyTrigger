@@ -79,8 +79,11 @@ if __name__ == "__main__":
 
     criterion = torch.nn.L1Loss(reduction='none')
     lossMap = {}
+    outputMap = {}
+    inputMap = {}
     for k, v in sampleMap.items():
-        lossMap[k] = EvalLoss(v["file"], PhysicsObt, model, criterion, cut=globalcutfunc)
+        lossMap[k], inputMap[i], outputMapp[i] = EvalLoss(v["file"], PhysicsObt, model, criterion, cut=globalcutfunc)
+    DrawInOut(modelname, PhysicsObt, inputMap, outputMap)
     DrawLoss(modelname, lossMap, features)
     DrawROC(modelname, lossMap, features)
     pickle.dump(lossMap, open("%s.p" % modelname, "wb"))
