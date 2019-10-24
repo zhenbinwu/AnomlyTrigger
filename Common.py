@@ -150,7 +150,7 @@ class P2L1NTP(Dataset):
             g  = event[b]
             ln = v[0]
             scale = v[1]
-            if isinstance(g,float) == True:
+            if isinstance(g,(int, float)):
                 tg = np.array([g])
             else:
                 if len(g)>= ln:
