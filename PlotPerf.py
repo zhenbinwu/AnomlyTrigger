@@ -33,7 +33,7 @@ if __name__ == "__main__":
     outputMap = {}
     inputMap = {}
     for k, v in sampleMap.items():
-        lossMap[k], inputMap[i], outputMapp[i] = EvalLoss(v["file"], PhysicsObt, model, criterion,
+        lossMap[k], inputMap[k], outputMap[k] = EvalLoss(v["file"], PhysicsObt, model, criterion,
                                                           cut=globalcutfunc, noisemaker=v.get("noisetype", None) )
 
     # lossMap = pickle.load(open("./%s.p" % modelname, "rb"))

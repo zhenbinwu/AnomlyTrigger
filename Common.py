@@ -3,6 +3,7 @@
 
 import os
 import torch
+import socket
 import uproot
 import glob
 import torchvision
@@ -29,8 +30,13 @@ print(uproot.__version__) # Need latest uproot v3.7.1 for LazzyArrays
 # It should be generic for all kind of flattree
 # LazzyArrays is very new for uproot. Need more testing for performances
 
-# folder = "/Users/benwu/Data/Phaes2L1Ntuple/"
-folder = "/uscms_data/d2/lpctrig/benwu/AutoEncoderSample/Phaes2L1Ntuple/"
+hostname = socket.gethostname()
+folder = "/home/benwu/Data/Phaes2L1Ntuple/"
+if hostname == "macbook":
+    folder = "/Users/benwu/Data/Phaes2L1Ntuple/"
+elif "fnal.gov" in hostname:
+    folder = "/uscms_data/d2/lpctrig/benwu/AutoEncoderSample/Phaes2L1Ntuple/"
+
 bg_files  = "%s/NeutrinoGun_E_10GeV_V7_5_2_MERGED.root" % folder
 sg_files  = "%s/VBF_HToInvisible_M125_14TeV_pythia8_PU200_V7_4_2.root" % folder
 sg_files2 = "%s/VBFHToBB_M-125_14TeV_powheg_pythia8_weightfix_V_7_5_2.root" % folder
@@ -197,7 +203,7 @@ class P2L1NTP(Dataset):
 
 def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None, noisemaker=None):
     sample = P2L1NTP(samplefile, PhysicsObt, noisetype=noisemaker)
-    dataloader = DataLoader(sample, batch_size=batch_size, pin_memory=True, shuffle=False)
+    dataloader = DataLoader(sample, batch_size=batch_size, pin_memory=True, num_workers=2, shuffle=False)
     for batch_idx, vbg_data in enumerate(dataloader):
         _vbg_img = Variable(vbg_data.type(torch.FloatTensor))
         if torch.cuda.is_available():
@@ -207,14 +213,15 @@ def EvalLoss(samplefile, PhysicsObt, model, criterion, cut=None, noisemaker=None
         vloss = criterion(vout, _vbg_img)
         _vbg_out = vout.cpu().detach().numpy()
         _vbg_loss = vloss.cpu().detach().numpy()
+        _vbg_data = vbg_data.cpu().detach().numpy()
         if batch_idx == 0:
-            vbg_in = vbg_data
+            vbg_in = _vbg_data
             vbg_out = _vbg_out
             vbg_loss = _vbg_loss
         else:
             vbg_loss = np.append([vbg_loss],[_vbg_loss])
             vbg_out = np.concatenate((vbg_out,_vbg_out))
-            vbg_in = np.concatenate((vbg_in, vbg_data))
+            vbg_in = np.concatenate((vbg_in, _vbg_data))
 
     if cut is not None:
         cutmask = sample.GetCutArray(cut)
@@ -269,7 +276,7 @@ def DrawROC(modelname, lossMap, features):
 def DrawInOut(modelname, PhysicsObt, inputMap, outputMap):
     for k in inputMap.keys():
         inputData = inputMap[k]
-        outputData = outputData[k]
+        outputData = outputMap[k]
         for i in range(outputData.shape[1]):
             plt.figure(figsize=(10,4))
             plt.subplot(1,2,1)
