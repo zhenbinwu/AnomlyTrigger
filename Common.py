@@ -5,6 +5,7 @@ import os
 import torch
 import socket
 import uproot
+import pprint
 import glob
 import torchvision
 import numpy as np
@@ -144,7 +145,7 @@ class P2L1NTP(Dataset):
             return len(self.upTree)
 
     def __getitem__(self, idx):
-        reflatnp = []
+        reflatnp = OrderedDict()
         event = self.upTree[idx]
         for b, v in self.features.items():
             g  = event[b]
@@ -153,18 +154,31 @@ class P2L1NTP(Dataset):
             if isinstance(g,(int, float)):
                 tg = np.array([g])
             else:
-                if len(g)>= ln:
-                    tg = g[:ln]
-                else:
-                    tg = np.pad(g, (0, ln-len(g)), 'constant', constant_values=0)
+                tg = g
             self.MakingNoise(b, tg)
-
             if scale > 10 :
                 tg = tg / scale
             elif scale > 1 :
                 tg = tg + scale
-            reflatnp.append(tg)
-        org = np.concatenate(reflatnp, axis=0)
+
+            # pad zero after scale
+            if len(tg)>= ln:
+                tt = tg[:ln]
+            else:
+                tt = np.pad(tg, (0, ln-len(g)), 'constant', constant_values=0)
+            # Store map
+            reflatnp[b] = tt
+
+        # pprint.pprint(reflatnp)
+        flatnp = []
+        puppijet = np.stack((reflatnp["puppiJetEt"], reflatnp["puppiJetEta"], reflatnp["puppiJetPhi"]), axis = -1)
+        for k, v in reflatnp.items():
+            if "puppiJet" in k:
+                continue
+            else:
+                flatnp = np.concatenate((flatnp, v))
+
+        org = np.concatenate((flatnp, puppijet.flatten()), axis=0)
         return org
 
     def MakingNoise(self, varname, var):
