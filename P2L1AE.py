@@ -39,6 +39,7 @@ if __name__ == "__main__":
     model = autoencoder(features)
     if torch.cuda.is_available():
         model = model.cuda()
+    # model.apply(weights_init)
 
     criterion = torch.nn.L1Loss(reduction='sum')
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-5)

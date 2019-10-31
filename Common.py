@@ -303,3 +303,8 @@ def DrawInOut(modelname, PhysicsObt, inputMap, outputMap):
             plt.ylabel('Output')
             plt.savefig( "%s_%s_%d.png" % (modelname, k, i) )
 
+
+def weights_init(m):
+    if type(m) == nn.Linear:
+        nn.init.xavier_normal_(m.weight)
+        m.bias.data.fill_(1.0)
